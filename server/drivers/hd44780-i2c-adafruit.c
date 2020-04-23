@@ -90,7 +90,7 @@ void i2c_adafruit_HD44780_backlight(PrivateData *p, unsigned char state);
 void i2c_adafruit_HD44780_close(PrivateData *p);
 
 // Lower 8 bits = Port A
-// Higher 8 bits = Port B
+// Upper 8 bits = Port B
 // Outputs
 #define RS	0x8000
 #define RW	0x4000
@@ -116,24 +116,34 @@ void i2c_adafruit_HD44780_close(PrivateData *p);
 
 #define I2C_ADDR_MASK 0x7f
 
+// Set the outputs to drive LCD pins
+// The lowest 16 bit of val are decisive:
+// the lower 8 bits are port A,
+// the upper 8 bits are port B
 static void
-i2c_out(PrivateData *p, unsigned char val)
+i2c_out(PrivateData *p, unsigned int val)
 {
-	unsigned char data[2];
-	int datalen;
+	unsigned char data[3];
 	static int no_more_errormsgs=0;
 
-	if (p->port & I2C_PCAX_MASK) { // we have a PCA9554 or similar, that needs a 2-byte command
-		data[0]=1; // command: read/write output port register
-		data[1]=val;
-		datalen=2;
-	} else { // we have a PCF8574 or similar, that needs a 1-byte command
-		data[0]=val;
-		datalen=1;
+	// We merge the backlight right int val here
+	// Otherwise we would unintentionally change it here
+	if (p->backlight_bit & 0x01) {
+		val = val | p->i2c_line_BLR;
+	}
+	if (p->backlight_bit & 0x02) {
+		val = val | p->i2c_line_BLG;
+	}
+	if (p->backlight_bit & 0x04) {
+		val = val | p->i2c_line_BLB;
 	}
 
-	if (i2c_write(p->i2c, data, datalen) < 0) {
-		p->hd44780_functions->drv_report(no_more_errormsgs?RPT_DEBUG:RPT_ERR, "HD44780: I2C: i2c write data %u failed: %s",
+	data[0] = 0x12; // Register GPIOA
+	data[1] = val & 0xFF;
+	data[2] = (val >> 8) & 0xFF;
+
+	if (i2c_write(p->i2c, data, 3) < 0) {
+		p->hd44780_functions->drv_report(no_more_errormsgs?RPT_DEBUG:RPT_ERR, "HD44780: I2C-ADAFRUIT: i2c write data %04x failed: %s",
 			val, strerror(errno));
 		no_more_errormsgs=1;
 	}
@@ -153,55 +163,110 @@ hd_init_i2c(Driver *drvthis)
 	HD44780_functions *hd44780_functions = p->hd44780_functions;
 	char device[256] = I2C_DEFAULT_DEVICE;
 
-	p->i2c_backlight_invert = drvthis->config_get_bool(drvthis->name, "BacklightInvert", 0, BL_INVERT);
+	p->i2c_backlight_invert_R = drvthis->config_get_bool(drvthis->name, "BacklightInvert_R", 0, BL_INVERT_R);
+	p->i2c_backlight_invert_G = drvthis->config_get_bool(drvthis->name, "BacklightInvert_G", 0, BL_INVERT_G);
+	p->i2c_backlight_invert_B = drvthis->config_get_bool(drvthis->name, "BacklightInvert_B", 0, BL_INVERT_B);
 	p->i2c_line_RS = drvthis->config_get_int(drvthis->name, "i2c_line_RS", 0, RS);
 	p->i2c_line_RW = drvthis->config_get_int(drvthis->name, "i2c_line_RW", 0, RW);
 	p->i2c_line_EN = drvthis->config_get_int(drvthis->name, "i2c_line_EN", 0, EN);
-	p->i2c_line_BL = drvthis->config_get_int(drvthis->name, "i2c_line_BL", 0, BL);
+	p->i2c_line_BLR = drvthis->config_get_int(drvthis->name, "i2c_line_BLR", 0, BLR);
+	p->i2c_line_BLG = drvthis->config_get_int(drvthis->name, "i2c_line_BLG", 0, BLG);
+	p->i2c_line_BLB = drvthis->config_get_int(drvthis->name, "i2c_line_BLB", 0, BLB);
 	p->i2c_line_D4 = drvthis->config_get_int(drvthis->name, "i2c_line_D4", 0, D4);
 	p->i2c_line_D5 = drvthis->config_get_int(drvthis->name, "i2c_line_D5", 0, D5);
 	p->i2c_line_D6 = drvthis->config_get_int(drvthis->name, "i2c_line_D6", 0, D6);
 	p->i2c_line_D7 = drvthis->config_get_int(drvthis->name, "i2c_line_D7", 0, D7);
+	p->i2c_line_BS = drvthis->config_get_int(drvthis->name, "i2c_line_BS", 0, BS);
+	p->i2c_line_BR = drvthis->config_get_int(drvthis->name, "i2c_line_BS", 0, BR);
+	p->i2c_line_BD = drvthis->config_get_int(drvthis->name, "i2c_line_BS", 0, BD);
+	p->i2c_line_BU = drvthis->config_get_int(drvthis->name, "i2c_line_BS", 0, BU);
+	p->i2c_line_BL = drvthis->config_get_int(drvthis->name, "i2c_line_BS", 0, BL);
 
-	report(RPT_INFO, "HD44780: I2C: Init using D4 and D5, and or'd lines, invert", p->i2c_line_RS);
-	report(RPT_INFO, "HD44780: I2C: Pin RS mapped to 0x%02X", p->i2c_line_RS);
-	report(RPT_INFO, "HD44780: I2C: Pin RW mapped to 0x%02X", p->i2c_line_RW);
-	report(RPT_INFO, "HD44780: I2C: Pin EN mapped to 0x%02X", p->i2c_line_EN);
-	report(RPT_INFO, "HD44780: I2C: Pin BL mapped to 0x%02X", p->i2c_line_BL);
-	report(RPT_INFO, "HD44780: I2C: Pin D4 mapped to 0x%02X", p->i2c_line_D4);
-	report(RPT_INFO, "HD44780: I2C: Pin D5 mapped to 0x%02X", p->i2c_line_D5);
-	report(RPT_INFO, "HD44780: I2C: Pin D6 mapped to 0x%02X", p->i2c_line_D6);
-	report(RPT_INFO, "HD44780: I2C: Pin D7 mapped to 0x%02X", p->i2c_line_D7);
-	report(RPT_INFO, "HD44780: I2C: Invert Backlight %d", p->i2c_backlight_invert);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin RS mapped to 0x%04X", p->i2c_line_RS);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin RW mapped to 0x%04X", p->i2c_line_RW);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin EN mapped to 0x%04X", p->i2c_line_EN);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin BLR mapped to 0x%04X", p->i2c_line_BLR);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin BLG mapped to 0x%04X", p->i2c_line_BLG);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin BLB mapped to 0x%04X", p->i2c_line_BLB);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin D4 mapped to 0x%04X", p->i2c_line_D4);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin D5 mapped to 0x%04X", p->i2c_line_D5);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin D6 mapped to 0x%04X", p->i2c_line_D6);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Pin D7 mapped to 0x%04X", p->i2c_line_D7);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Button BS mapped to 0x%04X", p->i2c_line_BS);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Button BR mapped to 0x%04X", p->i2c_line_BR);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Button BD mapped to 0x%04X", p->i2c_line_BD);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Button BU mapped to 0x%04X", p->i2c_line_BU);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Button BL mapped to 0x%04X", p->i2c_line_BL);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Invert Backlight R %d", p->i2c_backlight_invert_R);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Invert Backlight G %d", p->i2c_backlight_invert_G);
+	report(RPT_INFO, "HD44780: I2C-ADAFRUIT: Invert Backlight B %d", p->i2c_backlight_invert_B);
 
-	p->backlight_bit = p->i2c_line_BL;
+	p->backlight_bit = p->i2c_line_BLR | p->i2c_line_BLG | p->i2c_line_BLB;
 
 	/* READ CONFIG FILE */
 
 	/* Get serial device to use */
 	strncpy(device, drvthis->config_get_string(drvthis->name, "Device", 0, I2C_DEFAULT_DEVICE), sizeof(device));
 	device[sizeof(device)-1] = '\0';
-	report(RPT_INFO,"HD44780: I2C: Using device '%s' and address 0x%02X for a %s",
-		device, p->port & I2C_ADDR_MASK, (p->port & I2C_PCAX_MASK) ? "PCA9554(A)" : "PCF8574(A)");
+	report(RPT_INFO,"HD44780: I2C-ADAFRUIT: Using device '%s' and address 0x%02X for a MCP23017",
+		device, p->port & I2C_ADDR_MASK);
 
 	p->i2c = i2c_open(device, p->port & I2C_ADDR_MASK);
 	if (!p->i2c) {
-		report(RPT_ERR, "HD44780: I2C: connecting to device '%s' slave 0x%02X failed:", device, p->port & I2C_ADDR_MASK, strerror(errno));
+		report(RPT_ERR, "HD44780: I2C-ADAFRUIT: connecting to device '%s' slave 0x%02X failed:", device, p->port & I2C_ADDR_MASK, strerror(errno));
 		return(-1);
 	}
 
-	if (p->port & I2C_PCAX_MASK) { // we have a PCA9554 or similar, that needs special config
-		unsigned char data[2];
-		data[0] = 2; // command: set polarity inversion
-		data[1] = 0; // -> no polarity inversion
-		if (i2c_write(p->i2c, data, 2) < 0) {
-			report(RPT_ERR, "HD44780: I2C: i2c set polarity inversion failed: %s", strerror(errno));
-		}
-		data[0] = 3; // command: set output direction
-		data[1] = 0; // -> all pins are outputs
-		if (i2c_write(p->i2c, data, 2) <0) {
-			report(RPT_ERR, "HD44780: I2C: i2c set output direction failed: %s", strerror(errno));
-		}
+	// What needs to be changed from defaults:
+	// Enable Pull-Ups on button inputs
+	// Switch output pins to output mode
+
+	unsigned char data[3];
+
+	// Pull-UPs on any line that has a button connected
+	data[0] = 0x0c; // Register GPPUA
+	data[1] = (p->i2c_line_BS & 0xFF) | // Port A
+	          (p->i2c_line_BR & 0xFF) |
+	          (p->i2c_line_BD & 0xFF) |
+	          (p->i2c_line_BU & 0xFF) |
+	          (p->i2c_line_BL & 0xFF);
+	data[2] = ((p->i2c_line_BS >> 8) & 0xFF) | // Port B
+	          ((p->i2c_line_BR >> 8) & 0xFF) |
+	          ((p->i2c_line_BD >> 8) & 0xFF) |
+	          ((p->i2c_line_BU >> 8) & 0xFF) |
+	          ((p->i2c_line_BL >> 8) & 0xFF);
+
+	if (i2c_write(p->i2c, data, 3) < 0) {
+		report(RPT_ERR, "HD44780: I2C-ADAFRUIT: i2c set pull-ups failed: %s", strerror(errno));
+	}
+
+	// Output directions
+	data[0] = 0x00; // Register IODIRA
+	data[1] = 0xFF && // Port A
+	          !(p->i2c_line_RS & 0xFF) &&
+	          !(p->i2c_line_RW & 0xFF) &&
+	          !(p->i2c_line_EN & 0xFF) &&
+	          !(p->i2c_line_D4 & 0xFF) &&
+	          !(p->i2c_line_D5 & 0xFF) &&
+	          !(p->i2c_line_D6 & 0xFF) &&
+	          !(p->i2c_line_D7 & 0xFF) &&
+	          !(p->i2c_line_BLR & 0xFF) &&
+	          !(p->i2c_line_BLG & 0xFF) &&
+	          !(p->i2c_line_BLB & 0xFF);
+	data[2] = 0xFF && // Port B
+	          !((p->i2c_line_RS >> 8) & 0xFF) &&
+	          !((p->i2c_line_RW >> 8) & 0xFF) &&
+	          !((p->i2c_line_EN >> 8) & 0xFF) &&
+	          !((p->i2c_line_D4 >> 8) & 0xFF) &&
+	          !((p->i2c_line_D5 >> 8) & 0xFF) &&
+	          !((p->i2c_line_D6 >> 8) & 0xFF) &&
+	          !((p->i2c_line_D7 >> 8) & 0xFF) &&
+	          !((p->i2c_line_BLR >> 8) & 0xFF) &&
+	          !((p->i2c_line_BLG >> 8) & 0xFF) &&
+	          !((p->i2c_line_BLB >> 8) & 0xFF);
+
+	if (i2c_write(p->i2c, data, 3) < 0) {
+		report(RPT_ERR, "HD44780: I2C-ADAFRUIT: i2c set pull-ups failed: %s", strerror(errno));
 	}
 
 	hd44780_functions->senddata = i2c_HD44780_senddata;
@@ -324,9 +389,17 @@ i2c_HD44780_senddata(PrivateData *p, unsigned char displayID, unsigned char flag
  */
 void i2c_HD44780_backlight(PrivateData *p, unsigned char state)
 {
-	if ( p->i2c_backlight_invert == 0 )
+	// TODO: Handle inversion ? Or at i2c_out ?
+	p->backlight_bit = state;
+
+	// Should we i2c_out here or will it be automatically
+	// be written the next time?
+
+	/*
+	if ( p->i2c_backlight_invert_R == 0 )
 		p->backlight_bit = ((!have_backlight_pin(p)||state) ? 0 : p->i2c_line_BL);
 	else // Inverted backlight - npn transistor
 		p->backlight_bit = ((have_backlight_pin(p) && state) ? p->i2c_line_BL : 0);
 	i2c_out(p, p->backlight_bit);
+	*/
 }

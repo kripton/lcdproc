@@ -216,6 +216,9 @@ typedef struct hd44780_private_data {
 	/* i2c based connection types */
 
 	int i2c_backlight_invert;
+	int i2c_backlight_invert_R;
+	int i2c_backlight_invert_G;
+	int i2c_backlight_invert_B;
 	int i2c_line_RS;
 	int i2c_line_RW;
 	int i2c_line_EN;
@@ -224,6 +227,14 @@ typedef struct hd44780_private_data {
 	int i2c_line_D5;
 	int i2c_line_D6;
 	int i2c_line_D7;
+	int i2c_line_BLR; // Backlight RED
+	int i2c_line_BLG; // Backlight GREEN
+	int i2c_line_BLB; // Backlight BLUE
+	int i2c_line_BS; // Button "SELECT"
+	int i2c_line_BR; // Button "RIGHT"
+	int i2c_line_BD; // Button "DOWN"
+	int i2c_line_BU; // Button "UP"
+	int i2c_line_BL; // Button "LEFT"
 
 	I2CHandle *i2c;
 #endif
