@@ -338,6 +338,15 @@ screen_set_func(Client *c, int argc, char **argv)
 				else if (strcmp("open", argv[i]) == 0)
 					s->backlight = BACKLIGHT_OPEN;
 
+				else if (strcmp("red", argv[i]) == 0)
+					s->backlight |= BACKLIGHT_RED;
+
+				else if (strcmp("green", argv[i]) == 0)
+					s->backlight |= BACKLIGHT_GREEN;
+
+				else if (strcmp("blue", argv[i]) == 0)
+					s->backlight |= BACKLIGHT_BLUE;
+
 				else
 					sock_send_error(c->sock, "unknown backlight mode\n");
 

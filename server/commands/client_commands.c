@@ -247,7 +247,7 @@ backlight_func(Client *c, int argc, char **argv)
 		return 1;
 
 	if (argc != 2) {
-		sock_send_error(c->sock, "Usage: backlight {on|off|toggle|blink|flash}\n");
+		sock_send_error(c->sock, "Usage: backlight {on|off|toggle|blink|flash|red|green|blue}\n");
 		return 0;
 	}
 
@@ -273,6 +273,15 @@ backlight_func(Client *c, int argc, char **argv)
 	}
 	else if (strcmp ("flash", argv[1]) == 0) {
 		c->backlight |= BACKLIGHT_FLASH;
+	}
+	else if (strcmp("red", argv[1]) == 0) {
+		c->backlight |= BACKLIGHT_RED;
+	}
+	else if (strcmp("green", argv[1]) == 0) {
+		c->backlight |= BACKLIGHT_GREEN;
+	}
+	else if (strcmp("blue", argv[1]) == 0) {
+		c->backlight |= BACKLIGHT_BLUE;
 	}
 
 	sock_send_string(c->sock, "success\n");

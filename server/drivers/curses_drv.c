@@ -282,7 +282,7 @@ curses_init (Driver *drvthis)
 
 	curses_clear(drvthis);
 
-	report(RPT_DEBUG, "%s: init() done", drvthis->name);
+	report(RPT_DEBUG, "%s: init() done. COLORS: %d", drvthis->name, COLORS);
 
 	return 0;
 }

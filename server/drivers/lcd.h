@@ -45,6 +45,10 @@
 #define BACKLIGHT_OFF 0
 #define BACKLIGHT_ON  1
 
+#define BACKLIGHT_RED	0x1000
+#define BACKLIGHT_GREEN	0x2000
+#define BACKLIGHT_BLUE	0x4000
+
 /* Icons. If a driver does not support an icon, it can return -1 from the
  * icon function, and let the core place a replacement character.
  */
