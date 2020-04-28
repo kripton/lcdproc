@@ -328,16 +328,17 @@ i2c_piplate_HD44780_backlight(PrivateData *p, unsigned char state)
 	if (state == BACKLIGHT_ON) {
 		gpioa &= ~(R_BIT | G_BIT);
 		gpiob &= ~(B_BIT);
-	}
-	/* If not ON, it might be that the individual components are set */
-	else if (state & BACKLIGHT_RED) {
-		gpioa &= ~(R_BIT);
-	}
-	else if (state & BACKLIGHT_GREEN) {
-		gpioa &= ~(G_BIT);
-	}
-	else if (state & BACKLIGHT_BLUE) {
-		gpiob &= ~(B_BIT);
+	} else {
+		/* If not ON, it might be that the individual components are set */
+		if (state & BACKLIGHT_RED) {
+			gpioa &= ~(R_BIT);
+		}
+		if (state & BACKLIGHT_GREEN) {
+			gpioa &= ~(G_BIT);
+		}
+		if (state & BACKLIGHT_BLUE) {
+			gpiob &= ~(B_BIT);
+		}
 	}
 
 	/* Write the RGB bits */
