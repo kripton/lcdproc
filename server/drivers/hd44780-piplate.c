@@ -320,37 +320,26 @@ i2c_piplate_HD44780_backlight(PrivateData *p, int state)
 		return;
 	}
 
-	report(RPT_INFO, "HD44780: piplate: BACKLIGHT_ON: %08x BACKLIGHT_RED: %08x BACKLIGHT_GREEN: %08x BACKLIGHT_BLUE: %08x", BACKLIGHT_ON, BACKLIGHT_RED, BACKLIGHT_GREEN, BACKLIGHT_BLUE);
-
-	report(RPT_INFO, "HD44780: piplate: backlight shall be changed to %08x (%d). PRE  GPIOA: %04x GPIOB: %04x", state, state, gpioa, gpiob);
-
 	/* Set or clear the RGB bits. Backlight is ON if the bits are CLEAR */
 	/* First, set all bits = backlight OFF */
 	gpioa |= (R_BIT | G_BIT);
 	gpiob |= (B_BIT);
-	report(RPT_INFO, "HD44780: piplate: backlight POST SET ALL GPIOA: %04x GPIOB: %04x", gpioa, gpiob);
 	/* If backlight should be ON, clear ALL bits = RGB = WHITE */
 	if (state == BACKLIGHT_ON) {
 		gpioa &= ~(R_BIT | G_BIT);
 		gpiob &= ~(B_BIT);
-		report(RPT_INFO, "HD44780: piplate: backlight shall be ON. POST CLEAR ALL GPIOA: %04x GPIOB: %04x", gpioa, gpiob);
 	} else {
 		/* If not ON, it might be that the individual components are set */
 		if (state & BACKLIGHT_RED) {
 			gpioa &= ~(R_BIT);
-			report(RPT_INFO, "HD44780: piplate: backlight shall be RED! GPIOA: %04x GPIOB: %04x", gpioa, gpiob);
 		}
 		if (state & BACKLIGHT_GREEN) {
-			report(RPT_INFO, "HD44780: piplate: backlight shall be GREEN! GPIOA: %04x GPIOB: %04x", gpioa, gpiob);
 			gpioa &= ~(G_BIT);
 		}
 		if (state & BACKLIGHT_BLUE) {
-			report(RPT_INFO, "HD44780: piplate: backlight shall be BLUE! GPIOA: %04x GPIOB: %04x", gpioa, gpiob);
 			gpiob &= ~(B_BIT);
 		}
 	}
-
-	report(RPT_INFO, "HD44780: piplate: backlight shall be changed to %08x. POST GPIOA: %04x GPIOB: %04x", state, gpioa, gpiob);
 
 	/* Write the RGB bits */
 	i2c_write_reg(p, MCP23017_GPIOA, gpioa);

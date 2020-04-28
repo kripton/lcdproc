@@ -1177,10 +1177,8 @@ HD44780_backlight(Driver *drvthis, int on)
 	if (!p->backlight_type || p->backlightstate == on)
 		return;
 
-	if (p->hd44780_functions->backlight != NULL) {
-		report(RPT_INFO, "HD44780: backlight: Calling driver func with: %08x", on);
+	if (p->hd44780_functions->backlight != NULL)
 		p->hd44780_functions->backlight(p, on);
-	}
 
 	if (p->backlight_type & BACKLIGHT_INTERNAL)
 		hd44780_set_backlight_internal(p, on);
