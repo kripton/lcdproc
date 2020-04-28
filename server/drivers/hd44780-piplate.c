@@ -67,7 +67,7 @@
 
 void i2c_piplate_HD44780_senddata(PrivateData *p,
 				  unsigned char displayID, unsigned char flags, unsigned char ch);
-void i2c_piplate_HD44780_backlight(PrivateData *p, unsigned char state);
+void i2c_piplate_HD44780_backlight(PrivateData *p, int state);
 unsigned char i2c_piplate_HD44780_scankeypad(PrivateData *p);
 void i2c_piplate_HD44780_close(PrivateData *p);
 
@@ -305,7 +305,7 @@ i2c_piplate_HD44780_senddata(PrivateData *p,
  * \param state  New backlight status.
  */
 void
-i2c_piplate_HD44780_backlight(PrivateData *p, unsigned char state)
+i2c_piplate_HD44780_backlight(PrivateData *p, int state)
 {
 	unsigned char gpioa = 0;
 	unsigned char gpiob = 0;
