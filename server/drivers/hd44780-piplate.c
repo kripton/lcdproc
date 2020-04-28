@@ -279,8 +279,8 @@ i2c_piplate_HD44780_senddata(PrivateData *p,
 		else
 			write_val |= RS_BIT;
 
-		/* Set the blue backlight bit if backlight is OFF */
-		if (p->backlightstate == BACKLIGHT_OFF)
+		/* Set the blue backlight bit (= light off) if BLUE bit is not set and it's not "ON" */
+		if (!(p->backlightstate & BACKLIGHT_BLUE) && (p->backlightstate != BACKLIGHT_ON))
 			write_val |= B_BIT;
 
 		/* Set enable bit */
