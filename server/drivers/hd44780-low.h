@@ -389,7 +389,7 @@ typedef struct hwDependentFns {
 	 * \param p      pointer to private date structure
 	 * \param state  to be or not to be on
 	 */
-	void (*backlight) (PrivateData *p, unsigned char state);
+	void (*backlight) (PrivateData *p, int state);
 
 	/** Set the contrast
 	 * \param p      pointer to private date structure
