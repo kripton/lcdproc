@@ -1172,9 +1172,11 @@ HD44780_backlight(Driver *drvthis, int on)
 {
 	PrivateData *p = (PrivateData *) drvthis->private_data;
 
+	report(RPT_INFO, "HD44780: backlight shall be changed to %08x. Old state: %08x", on, p->backlightstate);
+
 	/* Immediately return if no way of setting backlight is available
            or no change is necessary */
-	if (!p->backlight_type|| p->backlightstate == on)
+	if (!p->backlight_type || p->backlightstate == on)
 		return;
 
 	if (p->hd44780_functions->backlight != NULL)
