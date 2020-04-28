@@ -148,7 +148,6 @@ render_screen(Screen *s, long timer)
 	}
 	else {
 		/* Send lowest (= ON) + RGB bits to driver */
-		report(RPT_INFO, "RENDER: backlight tmp_state %08x. To driver: %08x", tmp_state, tmp_state & (BACKLIGHT_ON | BACKLIGHT_RED | BACKLIGHT_GREEN | BACKLIGHT_BLUE));
 		drivers_backlight(tmp_state & (BACKLIGHT_ON | BACKLIGHT_RED | BACKLIGHT_GREEN | BACKLIGHT_BLUE));
 	}
 
