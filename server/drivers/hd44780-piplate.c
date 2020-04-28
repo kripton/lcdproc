@@ -320,6 +320,8 @@ i2c_piplate_HD44780_backlight(PrivateData *p, unsigned char state)
 		return;
 	}
 
+	report(RPT_INFO, "HD44780: piplate: backlight shall be changed to %04x. PRE  GPIOA: %02x GPIOB: %02x", state, gpioa, gpiob);
+
 	/* Set or clear the RGB bits. Backlight is ON if the bits are CLEAR */
 	/* First, set all bits = backlight OFF */
 	gpioa |= (R_BIT | G_BIT);
@@ -340,6 +342,8 @@ i2c_piplate_HD44780_backlight(PrivateData *p, unsigned char state)
 			gpiob &= ~(B_BIT);
 		}
 	}
+
+	report(RPT_INFO, "HD44780: piplate: backlight shall be changed to %04x. POST GPIOA: %02x GPIOB: %02x", state, gpioa, gpiob);
 
 	/* Write the RGB bits */
 	i2c_write_reg(p, MCP23017_GPIOA, gpioa);
